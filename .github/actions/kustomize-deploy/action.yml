@@ -22,7 +22,7 @@ runs:
         K8S_VERSION=$(curl -sL https://dl.k8s.io/release/stable.txt)
         curl -sLo kubectl "https://dl.k8s.io/release/${K8S_VERSION}/bin/linux/amd64/kubectl"
         chmod +x kubectl && sudo mv kubectl /usr/local/bin/
-        
+
         # Install kustomize (direct binary download, more reliable than install script)
         KUSTOMIZE_VERSION=$(curl -sL https://api.github.com/repos/kubernetes-sigs/kustomize/releases/latest | grep tag_name | cut -d '"' -f 4 | sed 's/kustomize\///')
         KUSTOMIZE_URL="https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize/${KUSTOMIZE_VERSION}/kustomize_${KUSTOMIZE_VERSION}_linux_amd64.tar.gz"
@@ -38,12 +38,12 @@ runs:
         echo "${{ inputs.kubeconfig_b64 }}" | base64 -d > "$HOME/.kube/config"
         chmod 600 "$HOME/.kube/config"
 
-     - name: Set image and apply
-       shell: bash
-       run: |
-         cd "deploy/k8s/overlays/${{ inputs.overlay }}"
-         kustomize edit set image "settlement-monitoring-api=${{ inputs.image }}"
-         kustomize build . | kubectl apply -f - --validate=ignore
+    - name: Set image and apply
+      shell: bash
+      run: |
+        cd "deploy/k8s/overlays/${{ inputs.overlay }}"
+        kustomize edit set image "settlement-monitoring-api=${{ inputs.image }}"
+        kustomize build . | kubectl apply -f - --validate=ignore
 
     - name: Wait for rollout
       shell: bash
