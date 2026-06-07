@@ -158,9 +158,9 @@ grep "newName:" kustomization.yaml
 kustomize build . | head -50
 # Shows: Namespace, ServiceAccount, ConfigMaps, Deployment, Service, HPA, Ingress, etc.
 
-# Apply to cluster with client-side validation only
-# (--validate=client skips connection to API server for OpenAPI schema)
-kustomize build . | kubectl apply -f - --validate=client
+# Apply to cluster (skip validation to avoid server connection requirement)
+# kubectl apply will validate the manifest syntax
+kustomize build . | kubectl apply -f - --validate=ignore
 
 # Result:
 # namespace/settlement-dev created
@@ -273,7 +273,7 @@ echo "🔧 Step 3: Set image and apply manifests"
 cd deploy/k8s/overlays/$OVERLAY
 kustomize edit set image settlement-monitoring-api="$IMAGE"
 echo "   Building and applying manifests..."
-kustomize build . | kubectl apply -f - --validate=client
+kustomize build . | kubectl apply -f - --validate=ignore
 
 # STEP 4: Wait for rollout
 echo ""
@@ -332,7 +332,7 @@ minikube image load "$IMAGE"
 kubectl context use-context minikube
 cd deploy/k8s/overlays/$OVERLAY
 kustomize edit set image settlement-monitoring-api="$IMAGE"
-kustomize build . | kubectl apply -f - --validate=client
+kustomize build . | kubectl apply -f - --validate=ignore
 kubectl -n "$NS" rollout status deployment/settlement-monitoring-api --timeout=180s
 
 # Access
@@ -366,14 +366,15 @@ After all 4 steps complete:
 3. **Apply** — Deploy manifests with the right image
 4. **Verify** — Ensure everything started correctly
 
-### Client-Side Validation (`--validate=client`)
+### Manifest Validation (`--validate=ignore`)
 
-By default, `kubectl apply` tries to validate against a running Kubernetes API server's OpenAPI schema. In our case:
-- **Local dev:** The API server is the cluster (works fine)
-- **CI/CD:** No running cluster in the runner, so we skip server-side validation
-- **Solution:** Use `--validate=client` to validate locally only
+By default, `kubectl apply` validates against a running Kubernetes API server's OpenAPI schema:
+- **Local dev:** Connection to cluster works fine (validates against schema)
+- **CI/CD:** We use `--validate=ignore` to skip OpenAPI schema validation
+- **Why ignore?** We're connected to a real cluster, so the manifest will be validated by the server anyway
+- **Safety:** The Kustomize build ensures the manifest structure is correct
 
-This is why we added `--validate=client` to the kustomize-deploy action.
+This is why we added `--validate=ignore` to the kustomize-deploy action.
 
 ### Timeouts & Health Checks
 

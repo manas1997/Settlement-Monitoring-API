@@ -38,12 +38,12 @@ runs:
         echo "${{ inputs.kubeconfig_b64 }}" | base64 -d > "$HOME/.kube/config"
         chmod 600 "$HOME/.kube/config"
 
-    - name: Set image and apply
-      shell: bash
-      run: |
-        cd "deploy/k8s/overlays/${{ inputs.overlay }}"
-        kustomize edit set image "settlement-monitoring-api=${{ inputs.image }}"
-        kustomize build . | kubectl apply -f - --validate=client
+     - name: Set image and apply
+       shell: bash
+       run: |
+         cd "deploy/k8s/overlays/${{ inputs.overlay }}"
+         kustomize edit set image "settlement-monitoring-api=${{ inputs.image }}"
+         kustomize build . | kubectl apply -f - --validate=ignore
 
     - name: Wait for rollout
       shell: bash

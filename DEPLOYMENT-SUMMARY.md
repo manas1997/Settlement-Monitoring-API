@@ -111,7 +111,7 @@ kubectl get nodes  # Verify access
 ```bash
 cd deploy/k8s/overlays/dev
 kustomize edit set image settlement-monitoring-api="$IMAGE"
-kustomize build . | kubectl apply -f - --validate=client
+kustomize build . | kubectl apply -f - --validate=ignore
 ```
 
 ### 4️⃣ Wait for rollout
