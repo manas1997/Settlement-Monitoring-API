@@ -18,10 +18,18 @@ runs:
     - name: Install kubectl + kustomize
       shell: bash
       run: |
-        curl -sLo kubectl "https://dl.k8s.io/release/$(curl -sL https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+        # Install kubectl
+        K8S_VERSION=$(curl -sL https://dl.k8s.io/release/stable.txt)
+        curl -sLo kubectl "https://dl.k8s.io/release/${K8S_VERSION}/bin/linux/amd64/kubectl"
         chmod +x kubectl && sudo mv kubectl /usr/local/bin/
-        curl -sL "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
-        sudo mv kustomize /usr/local/bin/
+        
+        # Install kustomize (direct binary download, more reliable than install script)
+        KUSTOMIZE_VERSION=$(curl -sL https://api.github.com/repos/kubernetes-sigs/kustomize/releases/latest | grep tag_name | cut -d '"' -f 4 | sed 's/kustomize\///')
+        KUSTOMIZE_URL="https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize/${KUSTOMIZE_VERSION}/kustomize_${KUSTOMIZE_VERSION}_linux_amd64.tar.gz"
+        curl -sLo /tmp/kustomize.tar.gz "$KUSTOMIZE_URL"
+        tar -xzf /tmp/kustomize.tar.gz -C /tmp/
+        sudo mv /tmp/kustomize /usr/local/bin/
+        rm /tmp/kustomize.tar.gz
 
     - name: Configure kubeconfig
       shell: bash
