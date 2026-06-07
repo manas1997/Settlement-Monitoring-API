@@ -18,6 +18,10 @@ resources:
   - namespace.yaml
   - ../../base
 
+# Expose the API via a public cloud LoadBalancer (no login required).
+components:
+  - ../../components/loadbalancer
+
 images:
   - name: settlement-monitoring-api
     newName: REPLACE_WITH_REGISTRY/settlement-monitoring-api

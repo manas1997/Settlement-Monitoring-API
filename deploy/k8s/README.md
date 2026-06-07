@@ -12,6 +12,8 @@ deploy/k8s
 │   ├── hpa.yaml          # HorizontalPodAutoscaler
 │   ├── ingress.yaml      # Ingress (nginx by default)
 │   └── kustomization.yaml
+├── components/
+│   └── loadbalancer/     # exposes the API Service as a public LoadBalancer
 └── overlays/
     ├── review/           # per-PR ephemeral env  (ns: settlement-review)
     ├── dev/              # integration env        (ns: settlement-dev)
@@ -95,13 +97,15 @@ The API waits for Postgres via an init container, so a cold cluster won't crash-
 
 ## 4. Get a public URL (no login)
 
-**Option A — LoadBalancer (simplest):** patch the Service to `type: LoadBalancer`:
+**Option A — LoadBalancer (default, simplest):** every overlay already includes the
+`components/loadbalancer` component, so the API Service is created as `type: LoadBalancer`.
+Just read the external address:
 
 ```bash
-kubectl -n settlement-dev patch svc settlement-monitoring-api \
-  -p '{"spec":{"type":"LoadBalancer"}}'
 kubectl -n settlement-dev get svc settlement-monitoring-api -w   # wait for EXTERNAL-IP
 ```
+
+(If you'd rather use an Ingress only, drop the `components:` entry from the overlay.)
 
 Then verify (no auth needed):
 

@@ -9,6 +9,10 @@ resources:
   - namespace.yaml
   - ../../base
 
+# Expose the API via a public cloud LoadBalancer (no login required).
+components:
+  - ../../components/loadbalancer
+
 # Pipeline overrides newName/newTag via `kustomize edit set image`.
 images:
   - name: settlement-monitoring-api
