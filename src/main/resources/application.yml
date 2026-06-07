@@ -1,0 +1,132 @@
+spring:
+  application:
+    name: Settlement-Monitoring-API
+  datasource:
+    url: jdbc:h2:mem:testdb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    open-in-view: false
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false   # ISO-8601 timestamps in JSON
+
+server:
+  port: 8080
+  error:
+    include-message: always
+    include-binding-errors: always
+
+# Observability: expose health, info, metrics and a Prometheus scrape endpoint.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when_authorized
+      probes:
+        enabled: true
+  metrics:
+    tags:
+      application: settlement-monitoring-api
+
+# OpenAPI / Swagger UI served at /swagger-ui.html
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
+
+# ---------------------------------------------------------------------------
+# Settlement monitoring configuration.
+#
+# Everything below is hot-swappable config: settlement windows, the cross-border
+# surcharge, the AT_RISK multiplier and FX rates can all be tuned WITHOUT code
+# changes. Bound to SettlementProperties via @ConfigurationProperties.
+# ---------------------------------------------------------------------------
+settlement:
+  # Extra business days added to the expected window for cross-border payments
+  # (currency conversion + international banking rails). Scenario: "add 2-5 days".
+  cross-border-surcharge-days: 3
+
+  # A captured-but-unsettled payment becomes AT_RISK once its age exceeds
+  # risk-multiplier x (expected window). Scenario: "2x normal settlement time".
+  risk-multiplier: 2.0
+
+  # Treat Saturday/Sunday as non-settling days for BUSINESS_DAYS windows.
+  skip-weekends: true
+
+  # Zone used to evaluate business-day boundaries.
+  zone-id: "UTC"
+
+  # Fallback window when no (method, country) or (method, *) rule matches.
+  default-window:
+    value: 5
+    unit: BUSINESS_DAYS
+
+  # Expected settlement windows. Most specific match wins:
+  #   (method + country)  >  (method + "*")  >  default-window
+  # `country` accepts an ISO-style code or "*" as a wildcard for any country.
+  # `unit` is one of: HOURS, CALENDAR_DAYS, BUSINESS_DAYS.
+  windows:
+    # Instant rails
+    - { method: pix,           country: BR, value: 1, unit: HOURS }          # Brazil PIX ~1h
+    - { method: e_wallet,      country: "*", value: 1, unit: CALENDAR_DAYS } # e-wallets: instant..1d
+
+    # Credit cards
+    - { method: credit_card,   country: MX, value: 3, unit: BUSINESS_DAYS }
+    - { method: credit_card,   country: BR, value: 4, unit: BUSINESS_DAYS }
+    - { method: credit_card,   country: CL, value: 3, unit: BUSINESS_DAYS }
+    - { method: credit_card,   country: CO, value: 4, unit: BUSINESS_DAYS }
+    - { method: credit_card,   country: "*", value: 5, unit: BUSINESS_DAYS }
+
+    # Bank transfers (LATAM + APAC)
+    - { method: bank_transfer, country: BR, value: 7, unit: BUSINESS_DAYS }  # Brazil TED/boleto-style
+    - { method: bank_transfer, country: MX, value: 2, unit: BUSINESS_DAYS }  # SPEI is fast
+    - { method: bank_transfer, country: CO, value: 4, unit: BUSINESS_DAYS }
+    - { method: bank_transfer, country: CL, value: 3, unit: BUSINESS_DAYS }
+    - { method: bank_transfer, country: ID, value: 5, unit: BUSINESS_DAYS }  # Indonesia ~5d
+    - { method: bank_transfer, country: TH, value: 3, unit: BUSINESS_DAYS }
+    - { method: bank_transfer, country: VN, value: 4, unit: BUSINESS_DAYS }
+    - { method: bank_transfer, country: "*", value: 6, unit: BUSINESS_DAYS }
+
+    # Cash voucher
+    - { method: oxxo,          country: MX, value: 3, unit: BUSINESS_DAYS }  # OXXO settles after pay-in
+
+  # FX rates: 1 unit of <currency> = N USD. Used to normalize analytics to USD.
+  # Approximate mid-market rates; adjust freely.
+  fx-rates-to-usd:
+    USD: 1.0
+    MXN: 0.058
+    BRL: 0.18
+    COP: 0.00025
+    IDR: 0.000062
+    THB: 0.028
+    VND: 0.000039
+
+  # Anomaly detection (stretch goal) tunables.
+  anomaly:
+    # "recent" = transactions captured within this many days of now.
+    recent-window-days: 7
+    # Minimum sample sizes before a combo is eligible to be flagged.
+    min-recent-samples: 5
+    min-baseline-samples: 10
+    # Flag when recent avg settlement time >= ratio x baseline avg.
+    degradation-ratio: 1.5
+    # Flag when recent delayed/at-risk share exceeds this fraction.
+    delayed-share-threshold: 0.30
+
+  # Seed the in-memory DB from this classpath dataset on startup (dev convenience).
+  seed-on-startup: true
+  seed-resource: "classpath:test-data/payments.json"

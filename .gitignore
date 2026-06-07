@@ -28,13 +28,15 @@ buildNumber.properties
 .LSOverride
 Thumbs.db
 
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
 # Build
 *.class
-*.jar
 *.war
 *.ear
-*.zip
-*.tar.gz
 
 # Logs
 logs/
