@@ -10,6 +10,8 @@ resources:
   - hpa.yaml
   - ingress.yaml
 
-commonLabels:
-  app.kubernetes.io/name: settlement-monitoring-api
-  app.kubernetes.io/part-of: oceantrade-settlement
+labels:
+  - includeSelectors: true
+    pairs:
+      app.kubernetes.io/name: settlement-monitoring-api
+      app.kubernetes.io/part-of: oceantrade-settlement
