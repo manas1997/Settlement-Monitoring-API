@@ -10,7 +10,8 @@ version = '1.0.0'
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
+        // Request Java 17 for compilation and test execution (minimum compatible Gradle JVM)
+        languageVersion = JavaLanguageVersion.of(17)
     }
 }
 

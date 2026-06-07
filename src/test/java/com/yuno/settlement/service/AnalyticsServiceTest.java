@@ -47,7 +47,8 @@ class AnalyticsServiceTest {
     assertThat(r.getTotalTransactions()).isEqualTo(6);
     assertThat(r.getTotalValueUsd()).isEqualByComparingTo("310");
     assertThat(r.getByStatus().get(SettlementStatus.SETTLED).getCount()).isEqualTo(2);
-    assertThat(r.getByStatus().get(SettlementStatus.SETTLED).getValueUsd()).isEqualByComparingTo("200");
+    assertThat(r.getByStatus().get(SettlementStatus.SETTLED).getValueUsd())
+        .isEqualByComparingTo("200");
   }
 
   @Test

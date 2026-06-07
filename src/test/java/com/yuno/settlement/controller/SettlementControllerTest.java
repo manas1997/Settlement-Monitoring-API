@@ -49,7 +49,10 @@ class SettlementControllerTest {
         """;
 
     mockMvc
-        .perform(post("/api/v1/settlement/classify").contentType(MediaType.APPLICATION_JSON).content(body))
+        .perform(
+            post("/api/v1/settlement/classify")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$[0].paymentId").value("pay_1"))
         .andExpect(jsonPath("$[0].settlementStatus").value("DELAYED"))
@@ -70,9 +73,13 @@ class SettlementControllerTest {
   @Test
   void missingRequiredFieldIsRejectedWith400() throws Exception {
     // amount + capturedAt missing -> validation error
-    String body = "{\"payments\":[{\"paymentMethod\":\"pix\",\"country\":\"BR\",\"currency\":\"BRL\"}]}";
+    String body =
+        "{\"payments\":[{\"paymentMethod\":\"pix\",\"country\":\"BR\",\"currency\":\"BRL\"}]}";
     mockMvc
-        .perform(post("/api/v1/settlement/classify").contentType(MediaType.APPLICATION_JSON).content(body))
+        .perform(
+            post("/api/v1/settlement/classify")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body))
         .andExpect(status().isBadRequest());
   }
 }

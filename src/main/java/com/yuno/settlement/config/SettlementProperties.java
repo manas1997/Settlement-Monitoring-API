@@ -11,8 +11,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 /**
- * Strongly-typed, externalized settlement configuration bound from the {@code settlement.*} block of
- * {@code application.yml}.
+ * Strongly-typed, externalized settlement configuration bound from the {@code settlement.*} block
+ * of {@code application.yml}.
  *
  * <p>This is the single knob the finance/ops team turns to change behaviour: expected windows per
  * (method, country), the cross-border surcharge, the AT_RISK multiplier and FX rates — all without
@@ -58,6 +58,7 @@ public class SettlementProperties {
   @NoArgsConstructor
   public static class WindowRule {
     private String method;
+
     /** ISO-style country code, or "*" wildcard. */
     private String country;
 

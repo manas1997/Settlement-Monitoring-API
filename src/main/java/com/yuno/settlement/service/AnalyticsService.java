@@ -34,8 +34,7 @@ public class AnalyticsService {
 
     Map<SettlementStatus, StatusBucket> byStatus = byStatus(payments, totalValue);
 
-    BigDecimal inTransit =
-        sum(payments, p -> isInTransit(p.getSettlementStatus()));
+    BigDecimal inTransit = sum(payments, p -> isInTransit(p.getSettlementStatus()));
     BigDecimal needsAttention =
         sum(
             payments,
@@ -50,7 +49,8 @@ public class AnalyticsService {
         .totalInTransitUsd(inTransit)
         .needsAttentionUsd(needsAttention)
         .byStatus(byStatus)
-        .avgSettlementHoursByMethod(avgSettlementHoursBy(payments, EnrichedPayment::getPaymentMethod))
+        .avgSettlementHoursByMethod(
+            avgSettlementHoursBy(payments, EnrichedPayment::getPaymentMethod))
         .avgSettlementHoursByCountry(avgSettlementHoursBy(payments, EnrichedPayment::getCountry))
         .settlementEfficiencyRate(round(efficiency(payments), 4))
         .settlementEfficiencyPct(round(efficiency(payments) * 100.0, 2))
@@ -66,7 +66,10 @@ public class AnalyticsService {
     for (SettlementStatus s : SettlementStatus.values()) {
       List<EnrichedPayment> bucket =
           payments.stream().filter(p -> p.getSettlementStatus() == s).collect(Collectors.toList());
-      BigDecimal value = bucket.stream().map(EnrichedPayment::getAmountUsd).reduce(BigDecimal.ZERO, BigDecimal::add);
+      BigDecimal value =
+          bucket.stream()
+              .map(EnrichedPayment::getAmountUsd)
+              .reduce(BigDecimal.ZERO, BigDecimal::add);
       double pct =
           totalValue.signum() == 0
               ? 0.0
@@ -89,8 +92,11 @@ public class AnalyticsService {
     Map<String, Double> out = new LinkedHashMap<>();
     payments.stream()
         .filter(p -> p.getSettlementStatus() == SettlementStatus.SETTLED)
-        .collect(Collectors.groupingBy(key, Collectors.averagingDouble(EnrichedPayment::getTimeInTransitHours)))
-        .entrySet().stream()
+        .collect(
+            Collectors.groupingBy(
+                key, Collectors.averagingDouble(EnrichedPayment::getTimeInTransitHours)))
+        .entrySet()
+        .stream()
         .sorted(Map.Entry.<String, Double>comparingByValue().reversed())
         .forEach(e -> out.put(e.getKey(), round(e.getValue(), 2)));
     return out;

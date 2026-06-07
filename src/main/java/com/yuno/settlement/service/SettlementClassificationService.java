@@ -50,9 +50,11 @@ public class SettlementClassificationService {
   /** Classify a single payment against the clock {@code now}. */
   public EnrichedPayment classify(Payment p, Instant now) {
     Instant deadline =
-        windows.expectedDeadline(p.getCapturedAt(), p.getPaymentMethod(), p.getCountry(), p.isCrossBorder());
+        windows.expectedDeadline(
+            p.getCapturedAt(), p.getPaymentMethod(), p.getCountry(), p.isCrossBorder());
     Instant riskDeadline =
-        windows.riskDeadline(p.getCapturedAt(), p.getPaymentMethod(), p.getCountry(), p.isCrossBorder());
+        windows.riskDeadline(
+            p.getCapturedAt(), p.getPaymentMethod(), p.getCountry(), p.isCrossBorder());
 
     Instant transitEnd = p.getSettledAt() != null ? p.getSettledAt() : now;
     Duration inTransit = Duration.between(p.getCapturedAt(), transitEnd);
@@ -100,8 +102,7 @@ public class SettlementClassificationService {
         .settledAt(p.getSettledAt())
         .crossBorder(p.isCrossBorder())
         .settlementStatus(status)
-        .expectedWindow(
-            windows.describe(p.getPaymentMethod(), p.getCountry(), p.isCrossBorder()))
+        .expectedWindow(windows.describe(p.getPaymentMethod(), p.getCountry(), p.isCrossBorder()))
         .expectedSettlementDeadline(deadline)
         .timeInTransitHours(round(hours, 2))
         .timeInTransitDays(round(hours / 24.0, 2))

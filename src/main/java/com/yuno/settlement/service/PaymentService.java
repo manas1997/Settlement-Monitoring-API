@@ -51,7 +51,8 @@ public class PaymentService {
    */
   @Transactional
   public List<EnrichedPayment> ingest(List<PaymentRequest> requests) {
-    List<Payment> entities = requests.stream().map(classifier::toPayment).collect(Collectors.toList());
+    List<Payment> entities =
+        requests.stream().map(classifier::toPayment).collect(Collectors.toList());
 
     // Idempotent upsert: re-ingesting an existing paymentId must update, not fail. With @Version,
     // Spring Data treats a null-version entity as new (INSERT). So for ids that already exist we
@@ -76,11 +77,14 @@ public class PaymentService {
 
   @Transactional(readOnly = true)
   public EnrichedPayment getOne(String paymentId) {
-    Payment p = repository.findById(paymentId).orElseThrow(() -> new PaymentNotFoundException(paymentId));
+    Payment p =
+        repository.findById(paymentId).orElseThrow(() -> new PaymentNotFoundException(paymentId));
     return classifier.classify(p, clock.instant());
   }
 
-  /** Returns all stored payments enriched, optionally filtered by status/method/country/processor. */
+  /**
+   * Returns all stored payments enriched, optionally filtered by status/method/country/processor.
+   */
   @Transactional(readOnly = true)
   public List<EnrichedPayment> query(
       SettlementStatus status, String method, String country, String processor) {
