@@ -1,0 +1,31 @@
+# Non-secret runtime config for the API. Values here are sane base defaults;
+# overlays patch per-environment differences (profile, seed flag, issuer URI).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: settlement-config
+  labels:
+    app: settlement-monitoring-api
+data:
+  SPRING_PROFILES_ACTIVE: "prod"
+  DB_URL: "jdbc:postgresql://postgres:5432/settlement"
+  # Base uses Hibernate to manage the schema so a fresh Postgres works out of the box.
+  # In real prod, switch to 'validate' and own the schema with Flyway/Liquibase.
+  SPRING_JPA_HIBERNATE_DDL_AUTO: "update"
+  # Seed the demo dataset on first start (overlays turn this off for prod).
+  SETTLEMENT_SEED_ON_STARTUP: "true"
+  # Used only when the 'secure' profile is active (prod overlay).
+  OAUTH_ISSUER_URI: ""
+---
+# App DB credentials. Kept separate from the Postgres secret so the two can be
+# rotated independently; in prod both come from an external secrets manager.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: settlement-secrets
+  labels:
+    app: settlement-monitoring-api
+type: Opaque
+stringData:
+  DB_USER: settlement
+  DB_PASSWORD: changeme-postgres

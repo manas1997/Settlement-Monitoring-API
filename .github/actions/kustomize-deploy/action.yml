@@ -1,0 +1,45 @@
+name: "Kustomize deploy"
+description: "Sets the image on an overlay and applies it to the target cluster."
+
+inputs:
+  overlay:
+    description: "Overlay directory under deploy/k8s/overlays (review|dev|prod)"
+    required: true
+  image:
+    description: "Fully-qualified image ref (repo:tag) to deploy"
+    required: true
+  kubeconfig_b64:
+    description: "Base64-encoded kubeconfig for the target cluster"
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Install kubectl + kustomize
+      shell: bash
+      run: |
+        curl -sLo kubectl "https://dl.k8s.io/release/$(curl -sL https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+        chmod +x kubectl && sudo mv kubectl /usr/local/bin/
+        curl -sL "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
+        sudo mv kustomize /usr/local/bin/
+
+    - name: Configure kubeconfig
+      shell: bash
+      run: |
+        mkdir -p "$HOME/.kube"
+        echo "${{ inputs.kubeconfig_b64 }}" | base64 -d > "$HOME/.kube/config"
+        chmod 600 "$HOME/.kube/config"
+
+    - name: Set image and apply
+      shell: bash
+      run: |
+        cd "deploy/k8s/overlays/${{ inputs.overlay }}"
+        kustomize edit set image "settlement-monitoring-api=${{ inputs.image }}"
+        kustomize build . | kubectl apply -f -
+
+    - name: Wait for rollout
+      shell: bash
+      run: |
+        NS="settlement-${{ inputs.overlay }}"
+        kubectl -n "$NS" rollout status deployment/settlement-monitoring-api --timeout=180s
+        echo "Deployed ${{ inputs.image }} to namespace $NS"

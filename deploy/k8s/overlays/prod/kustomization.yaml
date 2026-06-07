@@ -1,0 +1,60 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# PROD: deployed on tag/release behind a manual approval gate.
+#
+# IMPORTANT (challenge requirement): this deployment is kept PUBLICLY ACCESSIBLE
+# WITHOUT LOGIN so reviewers can reach it. It therefore runs the 'prod' profile
+# only (no 'secure'/JWT) and is seeded with the demo dataset.
+#
+# For a REAL production rollout you would instead:
+#   - SPRING_PROFILES_ACTIVE: "prod,secure"  + set OAUTH_ISSUER_URI
+#   - SETTLEMENT_SEED_ON_STARTUP: "false"
+#   - SPRING_JPA_HIBERNATE_DDL_AUTO: "validate" (schema via Flyway/Liquibase)
+#   - source DB creds from an external secrets manager (see runbook)
+namespace: settlement-prod
+
+resources:
+  - namespace.yaml
+  - ../../base
+
+images:
+  - name: settlement-monitoring-api
+    newName: REPLACE_WITH_REGISTRY/settlement-monitoring-api
+    newTag: stable
+
+replicas:
+  - name: settlement-monitoring-api
+    count: 3
+
+patches:
+  - target: { kind: Ingress, name: settlement-monitoring-api }
+    patch: |-
+      - op: replace
+        path: /spec/rules/0/host
+        value: api.settlement.example.com
+  - target: { kind: HorizontalPodAutoscaler, name: settlement-monitoring-api }
+    patch: |-
+      - op: replace
+        path: /spec/minReplicas
+        value: 3
+      - op: replace
+        path: /spec/maxReplicas
+        value: 12
+  - target: { kind: ConfigMap, name: settlement-config }
+    patch: |-
+      - op: replace
+        path: /data/SPRING_PROFILES_ACTIVE
+        value: "prod"
+      - op: replace
+        path: /data/SETTLEMENT_SEED_ON_STARTUP
+        value: "true"
+  # Larger headroom for prod pods.
+  - target: { kind: Deployment, name: settlement-monitoring-api }
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/memory
+        value: "768Mi"
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/memory
+        value: "1536Mi"

@@ -1,0 +1,43 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# REVIEW: ephemeral per-PR environment. Small, seeded, and OPEN (no auth) so
+# reviewers can hit it without login.
+namespace: settlement-review
+
+resources:
+  - namespace.yaml
+  - ../../base
+
+# Pipeline overrides newName/newTag via `kustomize edit set image`.
+images:
+  - name: settlement-monitoring-api
+    newName: REPLACE_WITH_REGISTRY/settlement-monitoring-api
+    newTag: review
+
+replicas:
+  - name: settlement-monitoring-api
+    count: 1
+
+patches:
+  - target: { kind: Ingress, name: settlement-monitoring-api }
+    patch: |-
+      - op: replace
+        path: /spec/rules/0/host
+        value: review.settlement.example.com
+  - target: { kind: HorizontalPodAutoscaler, name: settlement-monitoring-api }
+    patch: |-
+      - op: replace
+        path: /spec/minReplicas
+        value: 1
+      - op: replace
+        path: /spec/maxReplicas
+        value: 2
+  - target: { kind: ConfigMap, name: settlement-config }
+    patch: |-
+      - op: replace
+        path: /data/SPRING_PROFILES_ACTIVE
+        value: "prod"
+      - op: replace
+        path: /data/SETTLEMENT_SEED_ON_STARTUP
+        value: "true"
