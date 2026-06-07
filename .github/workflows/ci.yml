@@ -8,30 +8,50 @@ on:
 
 jobs:
   build-and-test:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        java-version: [ '17', '21' ]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up JDK 17
+      - name: Set up JDK ${{ matrix.java-version }}
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: "17"
+          java-version: ${{ matrix.java-version }}
           cache: gradle
 
-      - name: Build & test
-        run: ./gradlew clean build
+      - name: Cache Gradle dependencies and wrapper
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper/
+            ~/.gradle/build-cache
+          key: ${{ runner.os }}-gradle-${{ matrix.java-version }}-${{ hashFiles('**/*.gradle*','**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-${{ matrix.java-version }}-
 
-      - name: Formatting report (non-blocking)
-        if: always()
-        run: ./gradlew spotlessCheck || echo "Run ./gradlew spotlessApply to fix formatting"
+      - name: Ensure Gradle wrapper is executable
+        run: chmod +x gradlew
+
+      - name: Spotless check (formatting, blocking)
+        run: ./gradlew spotlessCheck --no-daemon
+
+      - name: Build & test
+        run: ./gradlew clean build --no-daemon
 
       - name: Upload test report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results
-          path: build/reports/tests/test
+          name: test-results-${{ matrix.os }}-jdk${{ matrix.java-version }}
+          path: |
+            build/reports/tests/test
+            build/test-results
+            build/reports
 
   docker:
     needs: build-and-test
