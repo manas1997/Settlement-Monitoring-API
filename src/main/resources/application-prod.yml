@@ -1,0 +1,36 @@
+# Production profile. Activate with: SPRING_PROFILES_ACTIVE=prod,secure
+# All secrets/URLs come from the environment — nothing sensitive is committed.
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/settlement}
+    username: ${DB_USER:settlement}
+    password: ${DB_PASSWORD:}
+    hikari:
+      maximum-pool-size: ${DB_POOL_MAX:20}
+      minimum-idle: ${DB_POOL_MIN:5}
+      connection-timeout: 3000
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: validate          # schema managed by migrations (Flyway/Liquibase), never auto
+    show-sql: false
+    open-in-view: false
+  h2:
+    console:
+      enabled: false
+
+  # OAuth2 resource server — token validation only (issuance lives in the IdP).
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${OAUTH_ISSUER_URI:}
+
+settlement:
+  # Never auto-seed synthetic data in production.
+  seed-on-startup: false
+
+management:
+  endpoint:
+    health:
+      show-details: never

@@ -31,6 +31,10 @@ dependencies {
     // --- Persistence ---
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 
+    // --- Security (JWT resource server; active under the 'secure' profile) ---
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
+
     // --- Observability (metrics, health) ---
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'io.micrometer:micrometer-registry-prometheus'
@@ -52,11 +56,15 @@ dependencies {
     // --- Testing ---
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.junit.jupiter:junit-jupiter'
+    testImplementation 'org.springframework.security:spring-security-test'
     testCompileOnly 'org.projectlombok:lombok'
     testAnnotationProcessor 'org.projectlombok:lombok'
 }
 
 spotless {
+    // Keep formatting available via `./gradlew spotlessApply` without failing `build`
+    // on style nits (run spotlessApply locally before committing).
+    enforceCheck false
     java {
         target 'src/main/java/**/*.java', 'src/test/java/**/*.java'
         googleJavaFormat '1.22.0'

@@ -1,0 +1,38 @@
+# Local production-like stack: API on Postgres.
+# Usage: docker compose up --build
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: settlement
+      POSTGRES_USER: settlement
+      POSTGRES_PASSWORD: settlement
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./src/main/resources/db/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U settlement"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # 'prod' uses Postgres; omit 'secure' so the local stack stays open for testing.
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: jdbc:postgresql://db:5432/settlement
+      DB_USER: settlement
+      DB_PASSWORD: settlement
+      # prod disables auto-seed; flip on to load the demo dataset locally:
+      SETTLEMENT_SEED_ON_STARTUP: "true"
+    ports:
+      - "8080:8080"
+
+volumes:
+  pgdata:

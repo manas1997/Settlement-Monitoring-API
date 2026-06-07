@@ -5,6 +5,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import java.math.BigDecimal;
 import java.time.Instant;
 import lombok.AllArgsConstructor;
@@ -71,4 +72,7 @@ public class Payment {
 
   /** Bookkeeping: when this record was ingested. */
   private Instant ingestedAt;
+
+  /** Optimistic-locking version to guard against lost updates under concurrent writes. */
+  @Version private Long version;
 }
