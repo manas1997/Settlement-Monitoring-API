@@ -11,6 +11,7 @@ import com.yuno.settlement.repository.PaymentRepository;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -51,9 +52,26 @@ public class PaymentService {
   @Transactional
   public List<EnrichedPayment> ingest(List<PaymentRequest> requests) {
     List<Payment> entities = requests.stream().map(classifier::toPayment).collect(Collectors.toList());
+
+    // Idempotent upsert: re-ingesting an existing paymentId must update, not fail. With @Version,
+    // Spring Data treats a null-version entity as new (INSERT). So for ids that already exist we
+    // carry over the stored version, turning the save into a version-checked UPDATE (merge).
+    List<String> ids = entities.stream().map(Payment::getPaymentId).collect(Collectors.toList());
+    Map<String, Long> existingVersions =
+        repository.findAllById(ids).stream()
+            .collect(
+                Collectors.toMap(
+                    Payment::getPaymentId, p -> p.getVersion() == null ? 0L : p.getVersion()));
+    entities.forEach(
+        e -> {
+          Long v = existingVersions.get(e.getPaymentId());
+          if (v != null) {
+            e.setVersion(v);
+          }
+        });
+
     List<Payment> saved = repository.saveAll(entities);
-    Instant now = clock.instant();
-    return classifier.classifyAll(saved, now);
+    return classifier.classifyAll(saved, clock.instant());
   }
 
   @Transactional(readOnly = true)
