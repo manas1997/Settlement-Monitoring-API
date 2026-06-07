@@ -1,2 +1,6 @@
-rootProject.name = 'Settlement-Monitoring-API'
+plugins {
+    // Lets Gradle auto-provision the Java 21 toolchain if it isn't already installed.
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '0.8.0'
+}
 
+rootProject.name = 'Settlement-Monitoring-API'
