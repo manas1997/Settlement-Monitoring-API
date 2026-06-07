@@ -1,0 +1,53 @@
+name: "Kustomize deploy"
+description: "Sets the image on an overlay and applies it to the target cluster."
+
+inputs:
+  overlay:
+    description: "Overlay directory under deploy/k8s/overlays (review|dev|prod)"
+    required: true
+  image:
+    description: "Fully-qualified image ref (repo:tag) to deploy"
+    required: true
+  kubeconfig_b64:
+    description: "Base64-encoded kubeconfig for the target cluster"
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Install kubectl + kustomize
+      shell: bash
+      run: |
+        # Install kubectl
+        K8S_VERSION=$(curl -sL https://dl.k8s.io/release/stable.txt)
+        curl -sLo kubectl "https://dl.k8s.io/release/${K8S_VERSION}/bin/linux/amd64/kubectl"
+        chmod +x kubectl && sudo mv kubectl /usr/local/bin/
+
+        # Install kustomize (direct binary download, more reliable than install script)
+        KUSTOMIZE_VERSION=$(curl -sL https://api.github.com/repos/kubernetes-sigs/kustomize/releases/latest | grep tag_name | cut -d '"' -f 4 | sed 's/kustomize\///')
+        KUSTOMIZE_URL="https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize/${KUSTOMIZE_VERSION}/kustomize_${KUSTOMIZE_VERSION}_linux_amd64.tar.gz"
+        curl -sLo /tmp/kustomize.tar.gz "$KUSTOMIZE_URL"
+        tar -xzf /tmp/kustomize.tar.gz -C /tmp/
+        sudo mv /tmp/kustomize /usr/local/bin/
+        rm /tmp/kustomize.tar.gz
+
+    - name: Configure kubeconfig
+      shell: bash
+      run: |
+        mkdir -p "$HOME/.kube"
+        echo "${{ inputs.kubeconfig_b64 }}" | base64 -d > "$HOME/.kube/config"
+        chmod 600 "$HOME/.kube/config"
+
+    - name: Set image and apply
+      shell: bash
+      run: |
+        cd "deploy/k8s/overlays/${{ inputs.overlay }}"
+        kustomize edit set image "settlement-monitoring-api=${{ inputs.image }}"
+        kustomize build . | kubectl apply -f - --validate=ignore
+
+    - name: Wait for rollout
+      shell: bash
+      run: |
+        NS="settlement-${{ inputs.overlay }}"
+        kubectl -n "$NS" rollout status deployment/settlement-monitoring-api --timeout=180s
+        echo "Deployed ${{ inputs.image }} to namespace $NS"

@@ -1,0 +1,46 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# DEV: long-lived integration environment updated on every merge to main.
+# Seeded and OPEN (no auth) so it is freely reviewable.
+namespace: settlement-dev
+
+resources:
+  - namespace.yaml
+  - ../../base
+
+# Expose the API via a public cloud LoadBalancer (no login required).
+components:
+  - ../../components/loadbalancer
+
+images:
+  - name: settlement-monitoring-api
+    newName: REPLACE_WITH_REGISTRY/settlement-monitoring-api
+    newTag: dev
+
+replicas:
+  - name: settlement-monitoring-api
+    count: 2
+
+patches:
+  - target: { kind: Ingress, name: settlement-monitoring-api }
+    patch: |-
+      - op: replace
+        path: /spec/rules/0/host
+        value: dev.settlement.example.com
+  - target: { kind: HorizontalPodAutoscaler, name: settlement-monitoring-api }
+    patch: |-
+      - op: replace
+        path: /spec/minReplicas
+        value: 2
+      - op: replace
+        path: /spec/maxReplicas
+        value: 4
+  - target: { kind: ConfigMap, name: settlement-config }
+    patch: |-
+      - op: replace
+        path: /data/SPRING_PROFILES_ACTIVE
+        value: "prod"
+      - op: replace
+        path: /data/SETTLEMENT_SEED_ON_STARTUP
+        value: "true"

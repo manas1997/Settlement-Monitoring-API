@@ -1,0 +1,24 @@
+# Ingress assumes an ingress-nginx controller. On EKS you'd typically use the
+# AWS Load Balancer Controller (alb) annotations; on GKE the gce class; on AKS
+# application-gateway or nginx. Swap the class/annotations to fit your cluster.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: settlement-monitoring-api
+  labels:
+    app: settlement-monitoring-api
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: settlement.example.com # overlays override the host
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: settlement-monitoring-api
+                port:
+                  number: 80

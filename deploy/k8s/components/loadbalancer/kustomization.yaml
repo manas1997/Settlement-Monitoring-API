@@ -1,0 +1,19 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+# Reusable component: exposes the API Service as a cloud LoadBalancer, giving a
+# public external IP/hostname WITHOUT requiring an ingress controller. This is
+# the simplest way to make the deployed app publicly reachable (no login).
+#
+# Cloud notes (optional annotations you may add per provider):
+#   AWS  : service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+#   GKE  : (default L4 LB; for internal use networking.gke.io/load-balancer-type: "Internal")
+#   AKS  : service.beta.kubernetes.io/azure-load-balancer-internal: "false"
+patches:
+  - target:
+      kind: Service
+      name: settlement-monitoring-api
+    patch: |-
+      - op: replace
+        path: /spec/type
+        value: LoadBalancer
